@@ -1,0 +1,78 @@
+{% for i in range(10) %}
+        <div class="conversation-item {% if i == 0 %}active{% endif %}" 
+             onclick="openChat({{ i }})">
+            <div style="position: relative;">
+                <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
+                     class="profile-pic" alt="Friend">
+                <div class="online-indicator"></div>
+            </div>
+            <div class="conversation-info">
+                <div class="conversation-name">Friend {{ i + 1 }}</div>
+                <div class="conversation-preview">Hey! How are you doing?</div>
+            </div>
+            <div style="font-size: 12px; color: var(--gray);">2h</div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Chat Area -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
+                 class="profile-pic" alt="Friend">
+            <div>
+                <div style="font-weight: 600;">Friend 1</div>
+                <div style="font-size: 13px; color: var(--gray);">Active now</div>
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 12px;">
+                <button class="nav-icon">📞</button>
+                <button class="nav-icon">📹</button>
+                <button class="nav-icon">ℹ️</button>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message">
+                <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
+                     class="profile-pic" style="width: 32px; height: 32px;" alt="Friend">
+                <div>
+                    <div class="message-bubble">
+                        Hey! How are you doing?
+                    </div>
+                    <div class="message-time">10:30 AM</div>
+                </div>
+            </div>
+            
+            <div class="message own">
+                <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
+                     class="profile-pic" style="width: 32px; height: 32px;" alt="You">
+                <div>
+                    <div class="message-bubble">
+                        I'm doing great! Thanks for asking 😊
+                    </div>
+                    <div class="message-time">10:32 AM</div>
+                </div>
+            </div>
+            
+            <div class="message">
+                <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
+                     class="profile-pic" style="width: 32px; height: 32px;" alt="Friend">
+                <div>
+                    <div class="message-bubble">
+                        That's awesome! Want to grab coffee later?
+                    </div>
+                    <div class="message-time">10:33 AM</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <button class="nav-icon">😊</button>
+            <input type="text" class="chat-input" placeholder="Type a message..." 
+                   id="messageInput" onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">
+                ➤
+            </button>
+        </div>
+    </div>
+</div>
