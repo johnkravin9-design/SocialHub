@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - SocialHub{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 20px auto; padding: 0 16px;">
+    <div class="messages-container">
+        <!-- Conversations List -->
+        <div class="conversations-list">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 24px; font-weight: bold;">Messages</h2>
+            </div>
+            
+            <div id="conversationsList">
+                <div class="loader"></div>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray);">
+                <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+                <h3>Select a conversation to start messaging</h3>
+                <p style="font-size: 14px;">Choose from your existing conversations or start a new one</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Template (hidden) -->
+<template id="chatTemplate">
+    <div class="chat-header">
+        <img src="" class="profile-pic chat-user-pic" alt="Friend">
+        <div>
+            <div class="chat-user-name" style="font-weight: 600;"></div>
+            <div class="chat-user-status" style="font-size: 13px; color: var(--gray);">
+                <span class="online-status">Active now</span>
+                <span class="typing-indicator" style="display: none;">typing...</span>
+            </div>
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 12px;">
+            <button class="nav-icon" title="Voice call">📞</button>
+            <button class="nav-icon" title="Video call">📹</button>
+            <button class="nav-icon" title="Info">ℹ️</button>
+        </div>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <!-- Messages will be loaded here -->
+    </div>
+    
+    <div class="chat-input-area">
+        <button class="nav-icon" title="Emoji">😊</button>
+        <button class="nav-icon" title="Attach file">📎</button>
+        <input type="text" class="chat-input" placeholder="Type a message..." 
+               id="messageInput">
+        <button class="send-btn" id="sendBtn">
+            ➤
+        </button>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const socket = io();
+const currentUserId = {{ user.id }};
+let currentChatUser = null;
+let typingTimeout = null;
+
+// Connect to socket
+socket.on('connect', function() {
+    console.log('✅ Connected to socket server');
+    loadConversations();
+});
+
+socket.on('disconnect', function() {
+    console.log('❌ Disconnected from socket server');
+});
+
+// Load all conversations
+async function loadConversations() {
+    try {
+        const response = await fetch('/api/conversations');
+        const users = await response.json();
+        
+        const listDiv = document.getElementById('conversationsList');
+        listDiv.innerHTML = '';
+        
+        users.forEach(user => {
+            const conversationHTML = `
+                <div class="conversation-item" data-user-id="${user.id}" onclick="openChat(${user.id}, '${user.username}', '${user.full_name}', '${user.profile_pic}')">
+                    <div style="position: relative;">
+                        <img src="/static/uploads/profiles/${user.profile_pic}" 
+                             class="profile-pic" alt="${user.full_name}">
+                        <div class="online-indicator"></div>
+                    </div>
+                    <div class="conversation-info">
+                        <div class="conversation-name">${user.full_name}</div>
+                        <div class="conversation-preview">@${user.username}</div>
+                    </div>
+                </div>
+            `;
+            listDiv.insertAdjacentHTML('beforeend', conversationHTML);
+        });
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+    }
+}
+
+// Open chat with specific user
+async function openChat(userId, username, fullName, profilePic) {
+    currentChatUser = userId;
+    
+    // Update active conversation
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+    
+    // Join socket room
+    const room = `chat_${Math.min(currentUserId, userId)}_${Math.max(currentUserId, userId)}`;
+    socket.emit('join', { room: room });
+    
+    // Load chat template
+    const template = document.getElementById('chatTemplate');
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML = template.innerHTML;
+    
+    // Update header info
+    chatArea.querySelector('.chat-user-pic').src = `/static/uploads/profiles/${profilePic}`;
+    chatArea.querySelector('.chat-user-name').textContent = fullName;
+    
+    // Load message history
+    await loadMessages(userId);
+    
+    // Setup event listeners
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    // Typing indicator
+    messageInput.addEventListener('input', function() {
+        socket.emit('typing', { receiver_id: currentChatUser });
+    });
+    
+    sendBtn.addEventListener('click', sendMessage);
+    
+    // Focus input
+    messageInput.focus();
+}
+
+// Load message history
+async function loadMessages(userId) {
+    try {
+        const response = await fetch(`/api/messages/${userId}`);
+        const messages = await response.json();
+        
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML = '';
+        
+        messages.forEach(msg => {
+            appendMessage(msg, msg.sender_id === currentUserId);
+        });
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error loading messages:', error);
+    }
+}
+
+// Append message to chat
+function appendMessage(msg, isOwn) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const time = msg.timestamp || new Date(msg.created_at).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    const messageHTML = `
+        <div class="message ${isOwn ? 'own' : ''}" data-message-id="${msg.id}">
+            <img src="/static/uploads/profiles/${msg.profile_pic}" 
+                 class="profile-pic" style="width: 32px; height: 32px;" alt="${msg.full_name}">
+            <div>
+                <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.insertAdjacentHTML('beforeend', messageHTML);
+    scrollToBottom();
+}
+
+// Send message
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (message && currentChatUser) {
+        socket.emit('send_message', {
+            receiver_id: currentChatUser,
+            message: message
+        });
+        
+        input.value = '';
+    }
+}
+
+// Receive messages
+socket.on('receive_message', function(data) {
+    if (!currentChatUser || (data.sender_id === currentChatUser || data.sender_id === currentUserId)) {
+        const isOwn = data.sender_id === currentUserId;
+        appendMessage(data, isOwn);
+        
+        // Play notification sound if not own message
+        if (!isOwn) {
+            playNotificationSound();
+        }
+    }
+});
+
+// Typing indicator
+socket.on('user_typing', function(data) {
+    if (data.user_id === currentChatUser) {
+        const typingIndicator = document.querySelector('.typing-indicator');
+        const onlineStatus = document.querySelector('.online-status');
+        
+        if (typingIndicator && onlineStatus) {
+            onlineStatus.style.display = 'none';
+            typingIndicator.style.display = 'inline';
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingIndicator.style.display = 'none';
+                onlineStatus.style.display = 'inline';
+            }, 2000);
+        }
+    }
+});
+
+// Utility functions
+function scrollToBottom() {
+    const messagesDiv = document.getElementById('chatMessages');
+    if (messagesDiv) {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function playNotificationSound() {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZSA==');
+    audio.play().catch(() => {});
+}
+
+// Handle page visibility for notifications
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('User left the page');
+    } else {
+        console.log('User returned to the page');
+    }
+});
+
+console.log('💬 Live messaging initialized!'); </script> {% 
+endblock %} Now restart your app:
+
