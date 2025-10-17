@@ -7,11 +7,11 @@ from database.models import Database, User, Post
 # from database.models import Message  # Uncomment if you add a Message model
 
 app = Flask(__name__)
-app.secret_key = 'SH-2024-secure-key-' + os.environ.get('SECRET_KEY', 'fallback-secret-key-change-me')
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Initialize database
 db = Database()

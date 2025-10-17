@@ -1,6 +1,8 @@
-Flask==3.0.0
-flask-socketio==5.3.5
-flask-login==0.6.3
-werkzeug==3.0.1
-pillow==10.1.0
-python-socketio==5.10.0
+Flask==2.3.0
+flask-socketio==5.3.0
+werkzeug==2.3.0
+pillow==10.0.0
+python-socketio==5.9.0
+python-engineio==4.7.0
+bidict==0.22.1
+simple-websocket==0.10.0
