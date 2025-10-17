@@ -24,7 +24,35 @@ def get_current_user():
     if 'user_id' in session:
         return User.get_by_id(session['user_id'])
     return None
+def time_ago(timestamp):
+    """Convert timestamp to relative time (e.g., '2 hours ago')"""
+    from datetime import datetime, timedelta
+    
+    if isinstance(timestamp, str):
+        timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+    
+    now = datetime.now()
+    diff = now - timestamp
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return "Just now"
+    elif seconds < 3600:
+        mins = int(seconds / 60)
+        return f"{mins} minute{'s' if mins != 1 else ''} ago"
+    elif seconds < 86400:
+        hours = int(seconds / 3600)
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif seconds < 604800:
+        days = int(seconds / 86400)
+        return f"{days} day{'s' if days != 1 else ''} ago"
+    else:
+        weeks = int(seconds / 604800)
+        return f"{weeks} week{'s' if weeks != 1 else ''} ago"
 
+# Make function available in templates
+app.jinja_env.filters['time_ago'] = time_ago
 # Routes
 @app.route('/')
 def index():
@@ -93,19 +121,49 @@ def messages():
     
     return render_template('messages.html', user=user, messages=messages)
 
-@app.route('/profile/<username>')
-def profile(username):
+@app.route('/profile/<username>/edit', methods=['GET', 'POST'])
+def edit_profile(username):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    current_user = get_current_user()
-    profile_user = User.get_by_username(username)
+    user = get_current_user()
     
-    if not profile_user:
-        flash('User not found!', 'error')
-        return redirect(url_for('home'))
+    # Check if user is editing their own profile
+    if user['username'] != username:
+        flash('You can only edit your own profile!', 'error')
+        return redirect(url_for('profile', username=username))
     
-    return render_template('profile.html', user=current_user, profile_user=profile_user)
+    if request.method == 'POST':
+        full_name = request.form.get('full_name')
+        bio = request.form.get('bio')
+        
+        # Handle profile picture upload
+        profile_pic = user['profile_pic']
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"profile_{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'profiles', filename)
+                file.save(filepath)
+                profile_pic = filename
+        
+        # Update database
+        db = Database()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE users 
+            SET full_name = ?, bio = ?, profile_pic = ?
+            WHERE id = ?
+        ''', (full_name, bio, profile_pic, session['user_id']))
+        conn.commit()
+        conn.close()
+        
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('profile', username=username))
+    
+    return render_template('edit_profile.html', user=user)
 
 @app.route('/post/create', methods=['POST'])
 def create_post():
