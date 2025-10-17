@@ -8,7 +8,8 @@
 <div style="max-width: 1200px; margin: 0 auto; padding: 0 16px;">
     <div class="profile-header">
         <img src="{{ url_for('static', filename='uploads/profiles/' + profile_user.profile_pic) }}" 
-             class="profile-picture-large" alt="{{ profile_user.full_name }}">
+             class="profile-picture-large" alt="{{ profile_user.full_name }}"
+             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
         
         <div class="profile-info">
             <h1 class="profile-name">{{ profile_user.full_name }}</h1>
@@ -20,16 +21,8 @@
             
             <div class="profile-stats">
                 <div class="stat">
-                    <span class="stat-number">1.2K</span>
+                    <span class="stat-number">{{ posts_count }}</span>
                     <span class="stat-label">Posts</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">5.4K</span>
-                    <span class="stat-label">Friends</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-number">890</span>
-                    <span class="stat-label">Following</span>
                 </div>
             </div>
             
@@ -63,25 +56,19 @@
             <div class="widget" style="margin-top: 16px;">
                 <div class="widget-title">Photos</div>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px;">
-                    {% for i in range(9) %}
-                    <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
-                         style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer;">
-                    {% endfor %}
+                    {% if photos %}
+                        {% for img in photos %}
+                        <img src="{{ url_for('static', filename='uploads/' + img) }}"
+                             style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer;"
+                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted">No photos yet</div>
+                    {% endif %}
                 </div>
             </div>
             
-            <div class="widget" style="margin-top: 16px;">
-                <div class="widget-title">Friends</div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 12px;">
-                    {% for i in range(9) %}
-                    <div style="text-align: center;">
-                        <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
-                             style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer;">
-                        <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Friend {{ i + 1 }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+            <!-- Friends widget hidden until implemented -->
         </div>
     </div>
 </div>

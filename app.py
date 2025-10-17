@@ -16,6 +16,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # Initialize database
 db = Database()
 
+# Ensure required upload directories exist
+def ensure_upload_dirs():
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'profiles'), exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'posts'), exist_ok=True)
+
+ensure_upload_dirs()
+
 # Helper functions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
@@ -121,6 +128,33 @@ def messages():
     
     return render_template('messages.html', user=user, messages=messages)
 
+@app.route('/profile/<username>')
+def profile(username):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    profile_user = User.get_by_username(username)
+    if not profile_user:
+        flash('User not found', 'error')
+        return redirect(url_for('home'))
+
+    # Stats
+    posts_count = Post.count_by_user(profile_user['id'])
+
+    # Recent photos come from that user's posts that have images
+    db_local = Database()
+    conn = db_local.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT image FROM posts WHERE user_id = ? AND image IS NOT NULL ORDER BY created_at DESC LIMIT 9', (profile_user['id'],))
+    photos = [row['image'] for row in cursor.fetchall()]
+    conn.close()
+
+    # Current user for navbar
+    current_user = get_current_user()
+
+    return render_template('profile.html', user=current_user, profile_user=profile_user, posts_count=posts_count, photos=photos)
+
+
 @app.route('/profile/<username>/edit', methods=['GET', 'POST'])
 def edit_profile(username):
     if 'user_id' not in session:
@@ -137,12 +171,15 @@ def edit_profile(username):
         full_name = request.form.get('full_name')
         bio = request.form.get('bio')
         
+        # Ensure upload directories exist
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'profiles'), exist_ok=True)
+
         # Handle profile picture upload
         profile_pic = user['profile_pic']
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
             if file and allowed_file(file.filename):
-                filename = secure_filename(f"profile_{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
+                filename = secure_filename(f"profile_{session['user_id']}_{int(datetime.now().timestamp())}_{file.filename}")
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'profiles', filename)
                 file.save(filepath)
                 profile_pic = filename
@@ -176,7 +213,8 @@ def create_post():
     if 'image' in request.files:
         file = request.files['image']
         if file and allowed_file(file.filename):
-            filename = secure_filename(f"{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
+            ensure_upload_dirs()
+            filename = secure_filename(f"{session['user_id']}_{int(datetime.now().timestamp())}_{file.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'posts', filename)
             file.save(filepath)
             image = f"posts/{filename}"
