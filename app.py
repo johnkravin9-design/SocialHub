@@ -16,6 +16,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # Initialize database
 db = Database()
 
+# Ensure required upload directories exist
+def ensure_upload_dirs():
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'profiles'), exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'posts'), exist_ok=True)
+
+ensure_upload_dirs()
+
 # Helper functions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
@@ -206,7 +213,8 @@ def create_post():
     if 'image' in request.files:
         file = request.files['image']
         if file and allowed_file(file.filename):
-            filename = secure_filename(f"{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
+            ensure_upload_dirs()
+            filename = secure_filename(f"{session['user_id']}_{int(datetime.now().timestamp())}_{file.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'posts', filename)
             file.save(filepath)
             image = f"posts/{filename}"

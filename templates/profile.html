@@ -8,7 +8,8 @@
 <div style="max-width: 1200px; margin: 0 auto; padding: 0 16px;">
     <div class="profile-header">
         <img src="{{ url_for('static', filename='uploads/profiles/' + profile_user.profile_pic) }}" 
-             class="profile-picture-large" alt="{{ profile_user.full_name }}">
+             class="profile-picture-large" alt="{{ profile_user.full_name }}"
+             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
         
         <div class="profile-info">
             <h1 class="profile-name">{{ profile_user.full_name }}</h1>
