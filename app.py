@@ -7,7 +7,7 @@ from database.models import Database, User, Post
 # from database.models import Message  # Uncomment if you add a Message model
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this-in-production'
+app.secret_key = 'SH-2024-secure-key-' + os.environ.get('SECRET_KEY', 'fallback-secret-key-change-me')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
@@ -170,6 +170,8 @@ def handle_message(data):
     }, room=room)
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
     print("🚀 Starting SocialHub...")
-    print("📱 Open http://127.0.0.1:5000 in your browser")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    print(f"📱 Running on port {port}")
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
