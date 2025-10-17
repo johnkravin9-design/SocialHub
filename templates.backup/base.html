@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SocialHub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="nav-logo">
+                🌐 SocialHub
+            </a>
+            
+            <div class="nav-search">
+                <input type="text" placeholder="Search SocialHub..." id="searchInput">
+            </div>
+            
+            <div class="nav-icons">
+                <div class="nav-icon" title="Home">
+                    <a href="{{ url_for('home') }}" style="text-decoration: none;">🏠</a>
+                </div>
+                <div class="nav-icon" title="Messages">
+                    <a href="{{ url_for('messages') }}" style="text-decoration: none;">💬</a>
+                </div>
+                <div class="nav-icon" title="Notifications">
+                    🔔
+                    <span class="notification-badge">3</span>
+                </div>
+                <a href="{{ url_for('profile', username=session.username) }}">
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic if user else 'default.jpg')) }}" 
+                         class="profile-pic" alt="Profile" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23e4e6eb%22/><text x=%2250%25%22 y=%2252%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2220%22>👤</text></svg>'">
+                </a>
+                <div class="nav-icon" onclick="if(confirm('Logout?')) location.href='{{ url_for('logout') }}'">
+                    🚪
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="notification {{ category }}" id="notification">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Auto-hide notifications
+        setTimeout(() => {
+            const notif = document.getElementById('notification');
+            if (notif) notif.style.display = 'none';
+        }, 3000);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
