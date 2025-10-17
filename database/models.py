@@ -149,6 +149,31 @@ class User:
         if user and check_password_hash(user['password_hash'], password):
             return user
         return None
+    
+    @staticmethod
+    def get_user_stats(user_id):
+        """Get real statistics for a user"""
+        db = Database()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        # Get posts count
+        cursor.execute('SELECT COUNT(*) as count FROM posts WHERE user_id = ?', (user_id,))
+        posts_count = cursor.fetchone()['count']
+        
+        # Get friends count (accepted friendships)
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM friendships 
+            WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
+        ''', (user_id, user_id))
+        friends_count = cursor.fetchone()['count']
+        
+        conn.close()
+        
+        return {
+            'posts_count': posts_count,
+            'friends_count': friends_count
+        }
 
 # Post operations
 class Post:
@@ -246,3 +271,25 @@ class Post:
         comments = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return comments
+    
+    @staticmethod
+    def get_user_posts(user_id, limit=50):
+        """Get all posts by a specific user"""
+        db = Database()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT p.*, u.username, u.full_name, u.profile_pic,
+                   (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ?
+            ORDER BY p.created_at DESC
+            LIMIT ?
+        ''', (user_id, limit))
+        
+        posts = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return posts

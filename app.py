@@ -121,6 +121,26 @@ def messages():
     
     return render_template('messages.html', user=user, messages=messages)
 
+@app.route('/profile/<username>')
+def profile(username):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = get_current_user()
+    profile_user = User.get_by_username(username)
+    
+    if not profile_user:
+        flash('User not found!', 'error')
+        return redirect(url_for('home'))
+    
+    # Get user's posts
+    posts = Post.get_user_posts(profile_user['id'])
+    
+    # Get real stats
+    stats = User.get_user_stats(profile_user['id'])
+    
+    return render_template('profile.html', user=user, profile_user=profile_user, posts=posts, stats=stats)
+
 @app.route('/profile/<username>/edit', methods=['GET', 'POST'])
 def edit_profile(username):
     if 'user_id' not in session:
@@ -141,9 +161,13 @@ def edit_profile(username):
         profile_pic = user['profile_pic']
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(f"profile_{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'profiles', filename)
+            if file and file.filename and allowed_file(file.filename):
+                # Create uploads/profiles directory if it doesn't exist
+                profiles_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'profiles')
+                os.makedirs(profiles_dir, exist_ok=True)
+                
+                filename = secure_filename(f"profile_{session['user_id']}_{int(datetime.now().timestamp())}_{file.filename}")
+                filepath = os.path.join(profiles_dir, filename)
                 file.save(filepath)
                 profile_pic = filename
         

@@ -1,4 +1,4 @@
-extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Edit Profile - SocialHub{% endblock %}
 
@@ -18,7 +18,8 @@ extends "base.html" %}
                     <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
                          id="profilePreview"
                          style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);" 
-                         alt="{{ user.full_name }}">
+                         alt="{{ user.full_name }}"
+                         onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
                     <div>
                         <input type="file" name="profile_pic" id="profilePicInput" accept="image/*" 
                                onchange="previewProfilePic(this)" style="display: none;">

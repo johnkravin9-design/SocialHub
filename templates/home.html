@@ -7,7 +7,9 @@
     <!-- Left Sidebar -->
     <div class="sidebar">
         <a href="{{ url_for('profile', username=user.username) }}" class="sidebar-item">
-            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" alt="{{ user.full_name }}">
+            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
+                 alt="{{ user.full_name }}"
+                 onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
             <span>{{ user.full_name }}</span>
         </a>
         <div class="sidebar-item">
@@ -30,31 +32,14 @@
 
     <!-- Feed -->
     <div class="feed">
-        <!-- Stories -->
-        <div class="stories">
-            <div class="story-circle">
-                <div class="story-ring">
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
-                         class="story-avatar" alt="Your Story">
-                </div>
-                <div class="story-username">Your Story</div>
-            </div>
-            {% for i in range(5) %}
-            <div class="story-circle">
-                <div class="story-ring">
-                    <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
-                         class="story-avatar" alt="Story">
-                </div>
-                <div class="story-username">Friend {{ i + 1 }}</div>
-            </div>
-            {% endfor %}
-        </div>
+        <!-- Stories section removed - no fake data -->
 
         <!-- Post Creator -->
         <div class="post-creator">
             <div class="post-input-area">
                 <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
-                     class="profile-pic" alt="{{ user.full_name }}">
+                     class="profile-pic" alt="{{ user.full_name }}"
+                     onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
                 <input type="text" class="post-input" placeholder="What's on your mind, {{ user.full_name.split()[0] }}?" 
                        onclick="openPostModal()">
             </div>
@@ -78,10 +63,11 @@
                 <div class="post-header">
                     <a href="{{ url_for('profile', username=post.username) }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
                         <img src="{{ url_for('static', filename='uploads/profiles/' + post.profile_pic) }}" 
-                             class="profile-pic" alt="{{ post.full_name }}">
+                             class="profile-pic" alt="{{ post.full_name }}"
+                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
                         <div class="post-author-info">
                             <div class="post-author">{{ post.full_name }}</div>
-			<div class="post-time">{{ post.created_at|time_ago }}</div>	                            
+                            <div class="post-time">{{ post.created_at|time_ago }}</div>
                         </div>
                     </a>
                     <button class="interaction-btn" style="margin-left: auto;">⋯</button>
@@ -118,7 +104,8 @@
                     <div id="comments-list-{{ post.id }}"></div>
                     <div class="comment-input">
                         <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
-                             class="profile-pic" alt="You" style="width: 32px; height: 32px;">
+                             class="profile-pic" alt="You" style="width: 32px; height: 32px;"
+                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
                         <input type="text" placeholder="Write a comment..." 
                                onkeypress="if(event.key==='Enter') addComment({{ post.id }}, this.value, this)">
                     </div>
@@ -130,33 +117,11 @@
     <!-- Right Widgets -->
     <div class="widgets">
         <div class="widget">
-            <div class="widget-title">Friend Requests</div>
-            <div class="widget-item">
-                <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
-                     class="profile-pic" alt="Friend">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600;">John Doe</div>
-                    <div style="font-size: 13px; color: var(--gray);">2 mutual friends</div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button class="btn btn-primary" style="flex: 1; padding: 6px;">Confirm</button>
-                        <button class="btn btn-secondary" style="flex: 1; padding: 6px;">Delete</button>
-                    </div>
-                </div>
+            <div class="widget-title">Suggestions</div>
+            <div style="padding: 20px; text-align: center; color: var(--gray);">
+                <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+                <p style="font-size: 14px;">Connect with friends to see them here</p>
             </div>
-        </div>
-
-        <div class="widget">
-            <div class="widget-title">Contacts</div>
-            {% for i in range(8) %}
-            <div class="widget-item">
-                <div style="position: relative;">
-                    <img src="{{ url_for('static', filename='uploads/profiles/default.jpg') }}" 
-                         class="profile-pic" style="width: 36px; height: 36px;" alt="Contact">
-                    <div class="online-indicator"></div>
-                </div>
-                <span>Friend {{ i + 1 }}</span>
-            </div>
-            {% endfor %}
         </div>
     </div>
 </div>
@@ -272,11 +237,11 @@ async function loadComments(postId) {
         commentsList.innerHTML = comments.map(c => `
             <div class="comment">
                 <img src="/static/uploads/profiles/${c.profile_pic}" class="profile-pic" 
-                     style="width: 32px; height: 32px;" alt="${c.full_name}">
+                     style="width: 32px; height: 32px;" alt="${c.full_name}"
+                     onerror="this.src='/static/uploads/profiles/default.jpg'">
                 <div class="comment-content">
                     <div class="comment-author">${c.full_name}</div>
-                    <div class="comment
-<div class="comment-text">${c.content}</div>
+                    <div class="comment-text">${c.content}</div>
                 </div>
             </div>
         `).join('');
