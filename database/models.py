@@ -166,6 +166,16 @@ class Post:
         post_id = cursor.lastrowid
         conn.close()
         return post_id
+
+    @staticmethod
+    def count_by_user(user_id):
+        db = Database()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) as count FROM posts WHERE user_id = ?', (user_id,))
+        count = cursor.fetchone()['count']
+        conn.close()
+        return count
     
     @staticmethod
     def get_feed(user_id, limit=50):
@@ -184,6 +194,26 @@ class Post:
             LIMIT ?
         ''', (user_id, limit))
         
+        posts = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return posts
+
+    @staticmethod
+    def get_by_user(user_id, limit=50):
+        db = Database()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT p.*, u.username, u.full_name, u.profile_pic,
+                   (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
+                   EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = u.id) as user_liked
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ?
+            ORDER BY p.created_at DESC
+            LIMIT ?
+        ''', (user_id, limit))
         posts = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return posts

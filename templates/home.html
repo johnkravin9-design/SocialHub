@@ -78,7 +78,7 @@
                 <div class="post-header">
                     <a href="{{ url_for('profile', username=post.username) }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
                         <img src="{{ url_for('static', filename='uploads/profiles/' + post.profile_pic) }}" 
-                             class="profile-pic" alt="{{ post.full_name }}">
+                             class="profile-pic" alt="{{ post.full_name }}" onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
                         <div class="post-author-info">
                             <div class="post-author">{{ post.full_name }}</div>
 			<div class="post-time">{{ post.created_at|time_ago }}</div>	                            
