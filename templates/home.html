@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Home - SocialHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <a href="{{ url_for('profile', username=user.username) }}" class="sidebar-item">
+            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" alt="{{ user.full_name }}">
+            <span>{{ user.full_name }}</span>
+        </a>
+        <a href="{{ url_for('invite_friends') }}" class="sidebar-item">
+            <span style="font-size: 24px;">➕</span>
+            <span>Invite Friends</span>
+        </a>
+        <a href="{{ url_for('view_pokes') }}" class="sidebar-item">
+            <span style="font-size: 24px;">👋</span>
+            <span>Pokes ({{ user.poke_count }})</span>
+        </a>
+        <div class="sidebar-item">
+            <span style="font-size: 24px;">👥</span>
+            <span>Friends</span>
+        </div>
+        <div class="sidebar-item">
+            <span style="font-size: 24px;">💾</span>
+            <span>Saved</span>
+        </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="feed">
+        <!-- Post Creator -->
+        <div class="post-creator">
+            <div class="post-input-area">
+                <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
+                     class="profile-pic" alt="{{ user.full_name }}">
+                <input type="text" class="post-input" placeholder="What's on your mind, {{ user.full_name.split()[0] }}?" 
+                       onclick="openPostModal()">
+            </div>
+            <div class="post-actions">
+                <button class="post-action-btn" onclick="openPostModal()">
+                    <span style="font-size: 20px;">📸</span> Photo/Video
+                </button>
+                <button class="post-action-btn" onclick="openPostModal()">
+                    <span style="font-size: 20px;">🏷️</span> Tag Friends
+                </button>
+                <button class="post-action-btn" onclick="openPostModal()">
+                    <span style="font-size: 20px;">😊</span> Feeling
+                </button>
+            </div>
+        </div>
+
+        <!-- Posts Feed -->
+        <div id="postsContainer">
+            {% for post in posts %}
+            <div class="post-card" data-post-id="{{ post.id }}">
+                <div class="post-header">
+                    <a href="{{ url_for('profile', username=post.username) }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + post.profile_pic) }}" 
+                             class="profile-pic" alt="{{ post.full_name }}">
+                        <div class="post-author-info">
+                            <div class="post-author">
+                                {{ post.full_name }}
+                                {% if post.wall_owner_username and post.wall_owner_username != post.username %}
+                                    <span style="font-weight: 400; color: var(--gray);">➜</span>
+                                    <a href="{{ url_for('profile', username=post.wall_owner_username) }}" style="color: var(--primary);">
+                                        {{ post.wall_owner_name }}
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="post-time">{{ post.created_at|time_ago }}</div>
+                        </div>
+                    </a>
+                    <button class="interaction-btn" style="margin-left: auto;">⋯</button>
+                </div>
+
+                <div class="post-content">{{ post.content }}</div>
+
+                {% if post.image %}
+                <img src="{{ url_for('static', filename='uploads/' + post.image) }}" 
+                     class="post-image" alt="Post image">
+                {% endif %}
+
+                <div class="post-stats">
+                    <span>👍 <span id="likes-{{ post.id }}">{{ post.likes_count }}</span></span>
+                    <span><span id="comments-count-{{ post.id }}">{{ post.comments_count }}</span> Comments</span>
+                </div>
+
+                <div class="post-interactions">
+                    <button class="interaction-btn {% if post.user_liked %}liked{% endif %}" 
+                            onclick="toggleLike({{ post.id }})">
+                        <span style="font-size: 20px;">👍</span> Like
+                    </button>
+                    <button class="interaction-btn" onclick="toggleComments({{ post.id }})">
+                        <span style="font-size: 20px;">💬</span> Comment
+                    </button>
+                    <button class="interaction-btn">
+                        <span style="font-size: 20px;">↗️</span> Share
+                    </button>
+                </div>
+
+                <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                    <div id="comments-list-{{ post.id }}"></div>
+                    <div class="comment-input">
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
+                             class="profile-pic" alt="You" style="width: 32px; height: 32px;">
+                        <input type="text" placeholder="Write a comment..." 
+                               onkeypress="if(event.key==='Enter') addComment({{ post.id }}, this.value, this)">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right Widgets -->
+    <div class="widgets">
+        {% if pokes %}
+        <div class="widget">
+            <div class="widget-title">👋 Recent Pokes</div>
+            {% for poke in pokes %}
+            <div class="widget-item">
+                <img src="{{ url_for('static', filename='uploads/profiles/' + poke.profile_pic) }}" 
+                     class="profile-pic" style="width: 36px; height: 36px;" alt="{{ poke.full_name }}">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600;">{{ poke.full_name }}</div>
+                    <div style="font-size: 13px; color: var(--gray);">{{ poke.created_at|time_ago }}</div>
+                </div>
+                <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 13px;"
+                        onclick="pokeBack({{ poke.poker_id }})">
+                    Poke Back
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="widget">
+            <div class="widget-title">🎁 Invite Friends</div>
+            <p style="font-size: 14px; color: var(--gray); margin-bottom: 12px;">
+                Invite 3 friends and unlock premium features!
+            </p>
+            <a href="{{ url_for('invite_friends') }}" class="btn btn-primary" style="width: 100%; text-align: center; text-decoration: none;">
+                Send Invites
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Post Modal -->
+<div class="modal" id="postModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Create Post</h3>
+            <button class="modal-close" onclick="closePostModal()">×</button>
+        </div>
+        <form id="postForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <textarea class="form-control" name="content" rows="4" 
+                          placeholder="What's on your mind?" required></textarea>
+            </div>
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" id="postImage" 
+                       onchange="previewImage(this)" style="display: none;">
+                <button type="button" class="btn btn-secondary" style="width: 100%;" 
+                        onclick="document.getElementById('postImage').click()">
+                    📸 Add Photo
+                </button>
+                <div id="imagePreview" style="display: none; margin-top: 12px; position: relative;">
+                    <img id="preview" src="" style="width: 100%; border-radius: 8px;">
+                    <button type="button" class="remove-image" onclick="removeImage()">×</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Post</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openPostModal() {
+    document.getElementById('postModal').classList.add('active');
+}
+
+function closePostModal() {
+    document.getElementById('postModal').classList.remove('active');
+    document.getElementById('postForm').reset();
+    document.getElementById('imagePreview').style.display = 'none';
+}
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeImage() {
+    document.getElementById('postImage').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+}
+
+document.getElementById('postForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/post/create', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            closePostModal();
+            location.reload();
+        }
+    } catch (error) {
+        alert('Error creating post');
+    }
+});
+
+async function toggleLike(postId) {
+    try {
+        const response = await fetch(`/post/${postId}/like`, { method: 'POST' });
+        const data = await response.json();
+        document.getElementById(`likes-${postId}`).textContent = data.count;
+        
+        const btn = event.target.closest('.interaction-btn');
+        btn.classList.toggle('liked');
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+async function toggleComments(postId) {
+    const commentsDiv = document.getElementById(`comments-${postId}`);
+    if (commentsDiv.style.display === 'none') {
+        commentsDiv.style.display = 'block';
+        await loadComments(postId);
+    } else {
+        commentsDiv.style.display = 'none';
+    }
+}
+
+async function loadComments(postId) {
+    try {
+        const response = await fetch(`/post/${postId}/comments`);
+        const comments = await response.json();
+        
+        const commentsList = document.getElementById(`comments-list-${postId}`);
+        commentsList.innerHTML = comments.map(c => `
+            <div class="comment">
+                <img src="/static/uploads/profiles/${c.profile_pic}" class="profile-pic" 
+                     style="width: 32px; height: 32px;">
+                <div class="comment-content">
+                    <div class="comment-author">${c.full_name}</div>
+                    <div class="comment-text">${c.content}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+async function addComment(postId, content, input) {
+    if (!content.trim()) return;
+    
+    try {
+        const response = await fetch(`/post/${postId}/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content })
+        });
+        
+        if (response.ok) {
+            input.value = '';
+            await loadComments(postId);
+            const count = document.getElementById(`comments-count-${postId}`);
+            count.textContent = parseInt(count.textContent) + 1;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+async function pokeBack(userId) {
+    try {
+        const response = await fetch(`/poke/${userId}`, { method: 'POST' });
+        const data = await response.json();
+        alert(data.message);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+document.getElementById('postModal').addEventListener('click', function(e) {
+    if (e.target === this) closePostModal();
+});
+</script>
+{% endblock %}

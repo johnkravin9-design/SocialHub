@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SocialHub - Connect with friends">
+    <title>{% block title %}SocialHub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1877f2">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="nav-logo">
+                🌐 SocialHub
+            </a>
+            
+            <div class="nav-search">
+                <form action="{{ url_for('search') }}" method="GET">
+                    <input type="text" name="q" placeholder="Search SocialHub..." autocomplete="off">
+                </form>
+            </div>
+            
+            <div class="nav-icons">
+                <a href="{{ url_for('home') }}" class="nav-icon" title="Home">🏠</a>
+                <a href="{{ url_for('messages') }}" class="nav-icon" title="Messages">💬</a>
+                <a href="{{ url_for('notifications') }}" class="nav-icon" title="Notifications">
+                    🔔
+                    <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+                </a>
+                <a href="{{ url_for('view_pokes') }}" class="nav-icon" title="Pokes">👋</a>
+                <a href="{{ url_for('invite_friends') }}" class="nav-icon" title="Invite Friends">➕</a>
+                <a href="{{ url_for('profile', username=session.username) }}">
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic if user else 'default.jpg')) }}" 
+                         class="profile-pic" alt="Profile">
+                </a>
+                <div class="nav-icon" onclick="if(confirm('Logout?')) location.href='{{ url_for('logout') }}'" title="Logout">
+                    🚪
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="notification {{ category }}" id="flashNotification">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    <script>
+        setTimeout(() => {
+            const notif = document.getElementById('flashNotification');
+            if (notif) notif.style.display = 'none';
+        }, 4000);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

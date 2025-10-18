@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - SocialHub{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 40px auto; padding: 0 16px;">
+    <div class="widget">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="font-size: 24px; font-weight: bold;">🔔 Notifications</h2>
+            <button class="btn btn-secondary" onclick="markAllRead()">Mark all as read</button>
+        </div>
+        
+        {% if notifications %}
+            {% for notif in notifications %}
+            <div class="widget-item {% if not notif.read %}unread{% endif %}" 
+                 style="margin-bottom: 12px; {% if not notif.read %}background: #e3f2fd;{% endif %}"
+                 onclick="markRead({{ notif.id }})">
+                {% if notif.from_user_id %}
+                <a href="{{ url_for('profile', username=notif.username) }}">
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + notif.profile_pic) }}" 
+                         class="profile-pic" style="width: 48px; height: 48px;">
+                </a>
+                {% else %}
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                    🌐
+                </div>
+                {% endif %}
+                
+                <div style="flex: 1;">
+                    <div style="font-weight: {% if not notif.read %}600{% else %}400{% endif %};">
+                        {% if notif.from_user_id %}
+                            <a href="{{ url_for('profile', username=notif.username) }}" style="color: var(--primary); text-decoration: none;">
+                                {{ notif.full_name }}
+                            </a>
+                        {% endif %}
+                        {{ notif.content }}
+                    </div>
+                    <div style="font-size: 13px; color: var(--gray);">
+                        {{ notif.created_at|time_ago }}
+                    </div>
+                </div>
+                
+                {% if not notif.read %}
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--primary);"></div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: var(--gray);">
+            <div style="font-size: 64px; margin-bottom: 16px;">🔔</div>
+            <h3 style="margin-bottom: 8px;">No notifications</h3>
+            <p>When you get notifications, they'll show up here</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function markRead(notifId) {
+    try {
+        await fetch(`/notifications/mark-read/${notifId}`, { method: 'POST' });
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+async function markAllRead() {
+    try {
+        await fetch('/notifications/mark-all-read', { method: 'POST' });
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+</script>
+{% endblock %}

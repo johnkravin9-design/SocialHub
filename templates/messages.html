@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Messages - SocialHub{% endblock %}
+{% block content %}
+<div style="max-width: 1200px; margin: 20px auto; padding: 0 16px;">
+    <div class="messages-container">
+        <div class="conversations-list">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 24px; font-weight: bold;">💬 Messages</h2>
+            </div>
+            <div id="conversationsList"><div class="loader"></div></div>
+        </div>
+        <div class="chat-area" id="chatArea">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray);">
+                <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+                <h3>Select a conversation</h3>
+            </div>
+        </div>
+    </div>
+</div>
+<template id="chatTemplate">
+    <div class="chat-header">
+        <img src="" class="profile-pic chat-user-pic">
+        <div>
+            <div class="chat-user-name" style="font-weight: 600;"></div>
+            <div style="font-size: 13px; color: var(--gray);"><span class="typing-indicator" style="display: none;">typing...</span></div>
+        </div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area">
+        <input type="text" class="chat-input" placeholder="Type a message..." id="messageInput">
+        <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+</template>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

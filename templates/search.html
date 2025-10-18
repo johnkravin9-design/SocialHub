@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Search - SocialHub{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 40px auto; padding: 0 16px;">
+    <div class="widget">
+        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 24px;">🔍 Search</h2>
+        
+        <form method="GET" style="margin-bottom: 32px;">
+            <input type="text" name="q" value="{{ query }}" class="form-control" 
+                   placeholder="Search for people..." autofocus>
+        </form>
+        
+        {% if query %}
+            {% if results %}
+            <h3 style="margin-bottom: 16px;">Found {{ results|length }} result{{ 's' if results|length != 1 else '' }}</h3>
+            {% for result in results %}
+            <div class="widget-item" style="margin-bottom: 12px;">
+                <a href="{{ url_for('profile', username=result.username) }}">
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + result.profile_pic) }}" 
+                         class="profile-pic" style="width: 48px; height: 48px;">
+                </a>
+                <div style="flex: 1;">
+                    <a href="{{ url_for('profile', username=result.username) }}" style="text-decoration: none;">
+                        <div style="font-weight: 600; color: var(--dark);">{{ result.full_name }}</div>
+                    </a>
+                    <div style="font-size: 13px; color: var(--gray);">@{{ result.username }}</div>
+                    {% if result.bio %}
+                    <div style="font-size: 14px; color: var(--gray); margin-top: 4px;">{{ result.bio[:60] }}...</div>
+                    {% endif %}
+                </div>
+                <button class="btn btn-primary" onclick="pokeUser({{ result.id }})">
+                    👋 Poke
+                </button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align: center; padding: 60px 20px; color: var(--gray);">
+                <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
+                <h3 style="margin-bottom: 8px;">No results found</h3>
+                <p>Try searching for something else</p>
+            </div>
+            {% endif %}
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: var(--gray);">
+            <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
+            <h3 style="margin-bottom: 8px;">Search for people</h3>
+            <p>Find friends and connect with them</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function pokeUser(userId) {
+    try {
+        const response = await fetch(`/poke/${userId}`, { method: 'POST' });
+        const data = await response.json();
+        alert(data.message);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+</script>
+{% endblock %}

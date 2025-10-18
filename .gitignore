@@ -1,0 +1,10 @@
+*.db
+database/*.db
+__pycache__/
+*.py[cod]
+venv/
+env/
+static/uploads/posts/*
+static/uploads/profiles/*
+*.log
+.env

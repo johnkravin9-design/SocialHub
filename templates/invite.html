@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Invite Friends - SocialHub{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 40px auto; padding: 0 16px;">
+    <div class="widget">
+        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">🎁 Invite Friends</h2>
+        <p style="color: var(--gray); margin-bottom: 24px;">
+            Invite friends and unlock premium features! You've successfully invited <strong>{{ successful_invites }}</strong> friend{{ 's' if successful_invites != 1 else '' }}.
+        </p>
+        
+        <!-- Your Invite Code -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; color: white; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 12px;">Your Invite Link</h3>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <input type="text" id="inviteLink" value="{{ request.url_root }}register?invite={{ invite_code }}" 
+                       readonly style="background: none; border: none; color: white; flex: 1; font-size: 14px;">
+                <button class="btn" style="background: white; color: #667eea;" onclick="copyInviteLink()">
+                    📋 Copy
+                </button>
+            </div>
+            <p style="font-size: 13px; margin-top: 12px; opacity: 0.9;">
+                Share this link with friends. When 3 friends join, you get premium features!
+            </p>
+        </div>
+        
+        <!-- Send Invite via Email -->
+        <form method="POST" style="margin-bottom: 32px;">
+            <h3 style="margin-bottom: 12px;">Send Email Invite</h3>
+            <div style="display: flex; gap: 12px;">
+                <input type="email" name="email" class="form-control" placeholder="friend@example.com" required style="flex: 1;">
+                <button type="submit" class="btn btn-primary">Send Invite</button>
+            </div>
+        </form>
+        
+        <!-- Your Invites -->
+        {% if invites %}
+        <h3 style="margin-bottom: 16px;">Your Invites ({{ invites|length }})</h3>
+        {% for invite in invites %}
+        <div class="widget-item" style="margin-bottom: 12px;">
+            <div style="flex: 1;">
+                <div style="font-weight: 600;">{{ invite.invitee_email }}</div>
+                <div style="font-size: 13px; color: var(--gray);">
+                    Sent {{ invite.created_at|time_ago }}
+                </div>
+            </div>
+            <span class="badge {% if invite.status == 'accepted' %}badge-success{% else %}badge-pending{% endif %}">
+                {{ '✅ Joined' if invite.status == 'accepted' else '⏳ Pending' }}
+            </span>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- Benefits -->
+    <div class="widget" style="margin-top: 24px;">
+        <h3 style="margin-bottom: 16px;">✨ Premium Benefits</h3>
+        <ul style="list-style: none; padding: 0;">
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <span style="font-size: 24px; margin-right: 12px;">🎨</span>
+                Custom profile themes
+            </li>
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <span style="font-size: 24px; margin-right: 12px;">📊</span>
+                Advanced analytics
+            </li>
+            <li style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                <span style="font-size: 24px; margin-right: 12px;">🚀</span>
+                Unlimited uploads
+            </li>
+            <li style="padding: 12px 0;">
+                <span style="font-size: 24px; margin-right: 12px;">⭐</span>
+                Premium badge
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function copyInviteLink() {
+    const input = document.getElementById('inviteLink');
+    input.select();
+    document.execCommand('copy');
+    alert('✅ Invite link copied to clipboard!');
+}
+</script>
+
+<style>
+.badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+.badge-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+.badge-pending {
+    background: #fff3e0;
+    color: #e65100;
+}
+</style>
+{% endblock %}

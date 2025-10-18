@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - SocialHub{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-logo">🌐</div>
+        <h1 style="text-align: center; font-size: 28px; margin-bottom: 8px;">Create Account</h1>
+        <p style="text-align: center; color: var(--gray); margin-bottom: 24px;">
+            It's quick and easy
+        </p>
+        
+        <form method="POST">
+            <div class="form-group">
+                <input type="text" name="full_name" class="form-control" placeholder="Full Name" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" name="username" class="form-control" placeholder="Username" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="email" name="email" class="form-control" placeholder="Email" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="password" name="password" class="form-control" placeholder="Password (min 6 characters)" required minlength="6">
+            </div>
+            
+            {% if invite_code %}
+            <div class="form-group">
+                <input type="text" name="invite_code" class="form-control" value="{{ invite_code }}" readonly 
+                       style="background: #e8f5e9; border-color: #4caf50;">
+                <p style="font-size: 13px; color: #4caf50; margin-top: 4px;">
+                    ✨ You were invited! Your friend will get premium features when you join!
+                </p>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <input type="text" name="invite_code" class="form-control" placeholder="Invite Code (optional)">
+            </div>
+            {% endif %}
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Sign Up
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
