@@ -19,7 +19,7 @@ class Database:
         cursor = conn.cursor()
         
         # Users table - ENHANCED with Zuck features
-        cursor.execute('''
+cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -27,7 +27,7 @@ class Database:
                 password_hash TEXT NOT NULL,
                 full_name TEXT NOT NULL,
                 bio TEXT,
-                profile_pic TEXT DEFAULT 'default.jpg',
+                profile_pic TEXT DEFAULT 'https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg',
                 cover_photo TEXT DEFAULT 'default_cover.jpg',
                 poke_count INTEGER DEFAULT 0,
                 invite_code TEXT UNIQUE,

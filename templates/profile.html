@@ -7,9 +7,7 @@
 
 <div style="max-width: 1200px; margin: 0 auto; padding: 0 16px;">
     <div class="profile-header">
-        <img src="{{ url_for('static', filename='uploads/profiles/' + profile_user.profile_pic) }}" 
-             class="profile-picture-large" alt="{{ profile_user.full_name }}">
-        
+	<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">        
         <div class="profile-info">
             <h1 class="profile-name">{{ profile_user.full_name }}</h1>
             <div class="profile-username">@{{ profile_user.username }}</div>
@@ -69,8 +67,7 @@
             <form id="wallPostForm">
                 <input type="hidden" name="wall_owner_id" value="{{ profile_user.id }}">
                 <div class="post-input-area">
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
-                         class="profile-pic" alt="{{ user.full_name }}">
+		<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">                   
                     <input type="text" class="post-input" name="content" 
                            placeholder="Write on {{ profile_user.full_name.split()[0] }}'s wall..." required>
                 </div>
@@ -85,9 +82,8 @@
         {% for post in wall_posts %}
         <div class="post-card" style="margin-top: 16px;">
             <div class="post-header">
-                <a href="{{ url_for('profile', username=post.username) }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + post.profile_pic) }}" 
-                         class="profile-pic" alt="{{ post.full_name }}">
+                <a href="{{ url_for('profile', username=post.username) }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;") }}" 
+		<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">
                     <div class="post-author-info">
                         <div class="post-author">{{ post.full_name }}</div>
                         <div class="post-time">{{ post.created_at|time_ago }}</div>
@@ -98,8 +94,7 @@
             <div class="post-content">{{ post.content }}</div>
 
             {% if post.image %}
-            <img src="{{ url_for('static', filename='uploads/' + post.image) }}" 
-                 class="post-image" alt="Post image">
+		<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">           
             {% endif %}
 
             <div class="post-stats">
@@ -119,8 +114,7 @@
             <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
                 <div id="comments-list-{{ post.id }}"></div>
                 <div class="comment-input">
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" 
-                         class="profile-pic" alt="You" style="width: 32px; height: 32px;">
+		<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">                   
                     <input type="text" placeholder="Write a comment..." 
                            onkeypress="if(event.key==='Enter') addComment({{ post.id }}, this.value, this)">
                 </div>
@@ -192,7 +186,7 @@ async function loadComments(postId) {
         const commentsList = document.getElementById(`comments-list-${postId}`);
         commentsList.innerHTML = comments.map(c => `
             <div class="comment">
-                <img src="/static/uploads/profiles/${c.profile_pic}" class="profile-pic" style="width: 32px; height: 32px;">
+		<img src="{{ profile_user.profile_pic }}" class="profile-picture-large" alt="{{ profile_user.full_name }}">              
                 <div class="comment-content">
                     <div class="comment-author">${c.full_name}</div>
                     <div class="comment-text">${c.content}</div>

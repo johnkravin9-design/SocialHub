@@ -5,12 +5,21 @@ import os
 from datetime import datetime
 from database.models import Database, User, Post, Poke, Notification, Invite
 import json
-
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-2024')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
+    secure = True
+)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Initialize database
@@ -121,27 +130,49 @@ def home():
                          notifications_count=notifications_count,
                          pokes=pokes)
 
-@app.route('/profile/<username>')
-def profile(username):
+@app.route('/profile/<username>/edit', methods=['GET', 'POST'])
+def edit_profile(username):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    current_user = get_current_user()
-    profile_user = User.get_by_username(username)
+    user = get_current_user()
     
-    if not profile_user:
-        flash('❌ User not found!', 'error')
-        return redirect(url_for('home'))
+    if user['username'] != username:
+        flash('❌ You can only edit your own profile!', 'error')
+        return redirect(url_for('profile', username=username))
     
-    wall_posts = Post.get_wall_posts(profile_user['id'])
-    poke_count = profile_user.get('poke_count', 0)
+    if request.method == 'POST':
+        full_name = request.form.get('full_name')
+        bio = request.form.get('bio', '')
+        
+        profile_pic = user['profile_pic']
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and file.filename and allowed_file(file.filename):
+                try:
+                    # Upload to Cloudinary
+                    upload_result = cloudinary.uploader.upload(
+                        file,
+                        folder="socialhub/profiles",
+                        resource_type="auto",
+                        transformation=[
+                            {'width': 400, 'height': 400, 'crop': 'fill', 'gravity': 'face'},
+                            {'quality': 'auto:good'}
+                        ]
+                    )
+                    profile_pic = upload_result['secure_url']
+                    print(f"✅ Profile pic uploaded to Cloudinary: {profile_pic}")
+                except Exception as e:
+                    print(f"❌ Cloudinary upload error: {e}")
+                    flash('❌ Profile picture upload failed', 'error')
+                    return redirect(url_for('edit_profile', username=username))
+        
+        User.update(session['user_id'], full_name=full_name, bio=bio, profile_pic=profile_pic)
+        
+        flash('✅ Profile updated successfully!', 'success')
+        return redirect(url_for('profile', username=username))
     
-    return render_template('profile.html', 
-                         user=current_user, 
-                         profile_user=profile_user,
-                         wall_posts=wall_posts,
-                         poke_count=poke_count)
-
+    return render_template('edit_profile.html', user=user)
 @app.route('/profile/<username>/edit', methods=['GET', 'POST'])
 def edit_profile(username):
     if 'user_id' not in session:
@@ -181,18 +212,40 @@ def create_post():
     
     content = request.form.get('content')
     wall_owner_id = request.form.get('wall_owner_id')
-    tagged_users = request.form.get('tagged_users')
+    if wall_owner_id:
+        wall_owner_id = int(wall_owner_id)
     
     image = None
     if 'image' in request.files:
         file = request.files['image']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(f"{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'posts', filename)
-            file.save(filepath)
-            image = f"posts/{filename}"
+        if file and file.filename and allowed_file(file.filename):
+            try:
+                # Upload to Cloudinary
+                upload_result = cloudinary.uploader.upload(
+                    file,
+                    folder="socialhub/posts",
+                    resource_type="auto",
+                    transformation=[
+                        {'width': 1200, 'height': 1200, 'crop': 'limit'},
+                        {'quality': 'auto:good'}
+                    ]
+                )
+                image = upload_result['secure_url']
+                print(f"✅ Image uploaded to Cloudinary: {image}")
+            except Exception as e:
+                print(f"❌ Cloudinary upload error: {e}")
+                return jsonify({'error': 'Image upload failed', 'message': str(e)}), 500
     
-    post_id = Post.create(session['user_id'], content, image, wall_owner_id, tagged_users)
+    post_id = Post.create(session['user_id'], content, image, wall_owner_id, None)
+    
+    # Emit real-time notification via WebSocket
+    if wall_owner_id:
+        socketio.emit('new_notification', {
+            'type': 'wall_post',
+            'message': f'{get_current_user()["full_name"]} posted on your wall'
+        }, room=f'user_{wall_owner_id}')
+    
+    return jsonify({'success': True, 'post_id': post_id})
     
     # Emit real-time notification via WebSocket
     if wall_owner_id:
