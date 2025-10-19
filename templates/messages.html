@@ -7,29 +7,191 @@
             <div style="padding: 16px; border-bottom: 1px solid var(--border);">
                 <h2 style="font-size: 24px; font-weight: bold;">💬 Messages</h2>
             </div>
-            <div id="conversationsList"><div class="loader"></div></div>
+            <div id="conversationsList">
+                <div class="loader"></div>
+            </div>
         </div>
         <div class="chat-area" id="chatArea">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray);">
                 <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
                 <h3>Select a conversation</h3>
+                <p style="font-size: 14px;">Choose someone to start chatting</p>
             </div>
         </div>
     </div>
 </div>
+
 <template id="chatTemplate">
     <div class="chat-header">
-        <img src="" class="profile-pic chat-user-pic">
+        <img src="" class="profile-pic chat-user-pic" alt="">
         <div>
             <div class="chat-user-name" style="font-weight: 600;"></div>
-            <div style="font-size: 13px; color: var(--gray);"><span class="typing-indicator" style="display: none;">typing...</span></div>
+            <div style="font-size: 13px; color: var(--gray);">
+                <span class="online-status">Active</span>
+                <span class="typing-indicator" style="display: none;">typing...</span>
+            </div>
         </div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
     <div class="chat-input-area">
+        <button class="nav-icon" style="background: none;">😊</button>
         <input type="text" class="chat-input" placeholder="Type a message..." id="messageInput">
         <button class="send-btn" id="sendBtn">➤</button>
     </div>
 </template>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<script>
+const socket = io();
+const currentUserId = {{ user.id }};
+let currentChatUser = null;
+
+socket.on('connect', function() {
+    console.log('✅ Connected to chat server');
+    loadConversations();
+});
+
+async function loadConversations() {
+    try {
+        const response = await fetch('/api/conversations');
+        if (!response.ok) throw new Error('Failed to load conversations');
+        
+        const users = await response.json();
+        const listDiv = document.getElementById('conversationsList');
+        listDiv.innerHTML = '';
+        
+        if (users.length === 0) {
+            listDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray);">No users yet</div>';
+            return;
+        }
+        
+        users.forEach(user => {
+            const conversationHTML = `
+                <div class="conversation-item" onclick="openChat(${user.id}, '${user.username}', '${user.full_name}', '${user.profile_pic}')">
+                    <div style="position: relative;">
+                        <img src="${user.profile_pic}" class="profile-pic" alt="${user.full_name}">
+                        <div class="online-indicator"></div>
+                    </div>
+                    <div class="conversation-info">
+                        <div class="conversation-name">${user.full_name}</div>
+                        <div class="conversation-preview">@${user.username}</div>
+                    </div>
+                </div>
+            `;
+            listDiv.insertAdjacentHTML('beforeend', conversationHTML);
+        });
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        document.getElementById('conversationsList').innerHTML = 
+            '<div style="padding: 20px; text-align: center; color: var(--danger);">Failed to load. Refresh page.</div>';
+    }
+}
+
+async function openChat(userId, username, fullName, profilePic) {
+    currentChatUser = userId;
+    
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+    
+    const room = `chat_${Math.min(currentUserId, userId)}_${Math.max(currentUserId, userId)}`;
+    socket.emit('join', { room: room });
+    
+    const template = document.getElementById('chatTemplate');
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML = template.innerHTML;
+    
+    chatArea.querySelector('.chat-user-pic').src = profilePic;
+    chatArea.querySelector('.chat-user-name').textContent = fullName;
+    
+    await loadMessages(userId);
+    
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.focus();
+}
+
+async function loadMessages(userId) {
+    try {
+        const response = await fetch(`/api/messages/${userId}`);
+        const messages = await response.json();
+        
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML = '';
+        
+        messages.forEach(msg => {
+            appendMessage(msg, msg.sender_id === currentUserId);
+        });
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error loading messages:', error);
+    }
+}
+
+function appendMessage(msg, isOwn) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const time = msg.timestamp || new Date(msg.created_at).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    const messageHTML = `
+        <div class="message ${isOwn ? 'own' : ''}">
+            <img src="${msg.profile_pic}" class="profile-pic" style="width: 32px; height: 32px;" alt="${msg.full_name}">
+            <div>
+                <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.insertAdjacentHTML('beforeend', messageHTML);
+    scrollToBottom();
+}
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (message && currentChatUser) {
+        socket.emit('send_message', {
+            receiver_id: currentChatUser,
+            message: message
+        });
+        input.value = '';
+    }
+}
+
+socket.on('receive_message', function(data) {
+    if (currentChatUser && (data.sender_id === currentChatUser || data.sender_id === currentUserId)) {
+        const isOwn = data.sender_id === currentUserId;
+        appendMessage(data, isOwn);
+    }
+});
+
+function scrollToBottom() {
+    const messagesDiv = document.getElementById('chatMessages');
+    if (messagesDiv) {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+console.log('💬 Messages initialized');
+</script>
 {% endblock %}

@@ -16,9 +16,9 @@
             {% if results %}
             <h3 style="margin-bottom: 16px;">Found {{ results|length }} result{{ 's' if results|length != 1 else '' }}</h3>
             {% for result in results %}
-            <div class="widget-item" style="margin-bottom: 12px;">
+<div class="widget-item" style="margin-bottom: 12px;">
                 <a href="{{ url_for('profile', username=result.username) }}">
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + result.profile_pic) }}" 
+                    <img src="{{ result.profile_pic }}" 
                          class="profile-pic" style="width: 48px; height: 48px;">
                 </a>
                 <div style="flex: 1;">
@@ -30,12 +30,15 @@
                     <div style="font-size: 14px; color: var(--gray); margin-top: 4px;">{{ result.bio[:60] }}...</div>
                     {% endif %}
                 </div>
-                <button class="btn btn-primary" onclick="pokeUser({{ result.id }})">
-                    👋 Poke
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addFriend({{ result.id }}, this)">
+                        👥 Add
+                    </button>
+                    <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="pokeUser({{ result.id }})">
+                        👋 Poke
+                    </button>
+                </div>
             </div>
-            {% endfor %}
-            {% else %}
             <div style="text-align: center; padding: 60px 20px; color: var(--gray);">
                 <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
                 <h3 style="margin-bottom: 8px;">No results found</h3>
@@ -64,3 +67,33 @@ async function pokeUser(userId) {
 }
 </script>
 {% endblock %}
+<script>
+async function addFriend(userId, button) {
+    try {
+        const response = await fetch(`/friend/request/${userId}`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            button.textContent = '✅ Sent';
+            button.disabled = true;
+            button.style.opacity = '0.7';
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to send friend request');
+    }
+}
+
+async function pokeUser(userId) {
+    try {
+        const response = await fetch(`/poke/${userId}`, { method: 'POST' });
+        const data = await response.json();
+        alert(data.message);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+</script>

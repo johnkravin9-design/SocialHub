@@ -259,6 +259,90 @@ def search():
     user = get_current_user()
     return render_template('search.html', user=user, results=results, query=query)
 
+@app.route('/friend/request/<int:user_id>', methods=['POST'])
+def send_friend_request(user_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if user_id == session['user_id']:
+        return jsonify({'success': False, 'message': 'Cannot add yourself'})
+    
+    db = Database()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    # Check if already friends or request exists
+    cursor.execute('''SELECT id, status FROM friendships 
+                     WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)''',
+                   (session['user_id'], user_id, user_id, session['user_id']))
+    existing = cursor.fetchone()
+    
+    if existing:
+        if existing['status'] == 'accepted':
+            conn.close()
+            return jsonify({'success': False, 'message': 'Already friends'})
+        else:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Request already sent'})
+    
+    # Create friend request
+    cursor.execute('''INSERT INTO friendships (user_id, friend_id, status) 
+                     VALUES (?, ?, 'pending')''', (session['user_id'], user_id))
+    
+    # Create notification
+    cursor.execute('''INSERT INTO notifications (user_id, type, content, from_user_id)
+                     VALUES (?, 'friend_request', 'sent you a friend request', ?)''',
+                   (user_id, session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': '✅ Friend request sent!'})
+
+@app.route('/friend/accept/<int:request_id>', methods=['POST'])
+def accept_friend_request(request_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    db = Database()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''UPDATE friendships SET status = 'accepted' 
+                     WHERE id = ? AND friend_id = ?''', (request_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': '✅ Friend request accepted!'})
+
+@app.route('/friend/status/<int:user_id>', methods=['GET'])
+def get_friend_status(user_id):
+    if 'user_id' not in session:
+        return jsonify({'status': 'not_logged_in'})
+    
+    if user_id == session['user_id']:
+        return jsonify({'status': 'self'})
+    
+    db = Database()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''SELECT status, user_id FROM friendships 
+                     WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)''',
+                   (session['user_id'], user_id, user_id, session['user_id']))
+    friendship = cursor.fetchone()
+    conn.close()
+    
+    if not friendship:
+        return jsonify({'status': 'none'})
+    
+    if friendship['status'] == 'accepted':
+        return jsonify({'status': 'friends'})
+    elif friendship['user_id'] == session['user_id']:
+        return jsonify({'status': 'pending_sent'})
+    else:
+        return jsonify({'status': 'pending_received'})
+
 @app.route('/messages')
 def messages():
     if 'user_id' not in session:

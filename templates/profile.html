@@ -31,7 +31,7 @@
                 </div>
             </div>
             
-            <div class="profile-actions">
+	<div class="profile-actions">
                 {% if profile_user.id == user.id %}
                 <a href="{{ url_for('edit_profile', username=profile_user.username) }}" 
                    class="btn btn-primary" style="text-decoration: none;">
@@ -44,16 +44,14 @@
                 <button class="btn btn-primary" onclick="pokeUser({{ profile_user.id }})">
                     👋 Poke
                 </button>
-                <button class="btn btn-secondary">
-                    👥 Add Friend
+                <button class="btn btn-primary" id="friendBtn" onclick="handleFriendAction({{ profile_user.id }})">
+                    <span id="friendBtnText">👥 Add Friend</span>
                 </button>
-                <button class="btn btn-secondary" onclick="location.href='/messages'">
+                <a href="/messages" class="btn btn-secondary" style="text-decoration: none;">
                     💬 Message
-                </button>
+                </a>
                 {% endif %}
             </div>
-        </div>
-    </div>
     
     <!-- Wall Section -->
     <div style="max-width: 800px; margin: 20px auto;">
@@ -215,6 +213,61 @@ async function addComment(postId, content, input) {
     } catch (error) {
         console.error('Error:', error);
     }
+}
+
+// Load friend status on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    const profileUserId = {{ profile_user.id }};
+    const friendBtn = document.getElementById('friendBtn');
+    const friendBtnText = document.getElementById('friendBtnText');
+    
+    if (!friendBtn) return; // Current user's own profile
+    
+    try {
+        const response = await fetch(`/friend/status/${profileUserId}`);
+        const data = await response.json();
+        
+        switch(data.status) {
+            case 'friends':
+                friendBtnText.textContent = '✅ Friends';
+                friendBtn.disabled = true;
+                friendBtn.style.opacity = '0.7';
+                break;
+            case 'pending_sent':
+                friendBtnText.textContent = '⏳ Request Sent';
+                friendBtn.disabled = true;
+                friendBtn.style.opacity = '0.7';
+                break;
+            case 'pending_received':
+                friendBtnText.textContent = '✅ Accept Request';
+                break;
+        }
+    } catch (error) {
+        console.error('Error loading friend status:', error);
+    }
+});
+
+async function handleFriendAction(userId) {
+    try {
+        const response = await fetch(`/friend/request/${userId}`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('friendBtnText').textContent = '⏳ Request Sent';
+            document.getElementById('friendBtn').disabled = true;
+            document.getElementById('friendBtn').style.opacity = '0.7';
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Failed to send friend request', 'error');
+    }
+}
+
+function showToast(message, type) {
+    alert(message); // Simple for now, you can make it prettier later
 }
 </script>
 {% endblock %}
